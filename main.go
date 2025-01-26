@@ -3,6 +3,7 @@ package main
 import (
 	"kukuh/go-restful/app"
 	"kukuh/go-restful/controller"
+	"kukuh/go-restful/exception"
 	"kukuh/go-restful/helper"
 	"kukuh/go-restful/repository"
 	"kukuh/go-restful/service"
@@ -30,6 +31,8 @@ func main() {
 	router.POST("/api/users", userController.CreateNewUser)
 	router.PUT("/api/users/:userId", userController.UpdateUser)
 	router.DELETE("/api/users/:userId", userController.DeleteUser)
+
+	router.PanicHandler = exception.ErrorHandler
 
 	server := http.Server{
 		Addr:    "localhost:3000",
