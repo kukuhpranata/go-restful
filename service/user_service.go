@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"database/sql"
+	"kukuh/go-restful/exception"
 	"kukuh/go-restful/helper"
 	"kukuh/go-restful/model/domain"
 	"kukuh/go-restful/model/domain/web"
@@ -67,7 +68,9 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, request web.UpdateUser
 	defer helper.CommitOrRollback(tx)
 
 	user, err := s.UserRepository.FindById(ctx, tx, request.Id)
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
 
 	user.Email = request.Email
 	user.Password = request.Password
@@ -89,7 +92,9 @@ func (s *UserServiceImpl) DeleteUser(ctx context.Context, userId int) {
 	defer helper.CommitOrRollback(tx)
 
 	_, err = s.UserRepository.FindById(ctx, tx, userId)
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
 
 	s.UserRepository.Delete(ctx, tx, userId)
 }
@@ -100,7 +105,9 @@ func (s *UserServiceImpl) FindUserById(ctx context.Context, userId int) web.User
 	defer helper.CommitOrRollback(tx)
 
 	user, err := s.UserRepository.FindById(ctx, tx, userId)
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
 
 	userResponse := web.UserResponse{
 		Email: user.Email,
@@ -116,7 +123,9 @@ func (s *UserServiceImpl) FindUserByEmail(ctx context.Context, email string) web
 	defer helper.CommitOrRollback(tx)
 
 	user, err := s.UserRepository.FindByEmail(ctx, tx, email)
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
 
 	userResponse := web.UserResponse{
 		Email: user.Email,
