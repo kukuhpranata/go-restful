@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"kukuh/go-restful/exception"
 	"kukuh/go-restful/helper"
+	"kukuh/go-restful/helper/token"
 	"kukuh/go-restful/model/domain"
 	"kukuh/go-restful/model/domain/web"
 	"kukuh/go-restful/repository"
@@ -19,6 +20,9 @@ type UserService interface {
 	FindUserById(ctx context.Context, userId int) web.UserResponse
 	FindUserByEmail(ctx context.Context, email string) web.UserResponse
 	FindAllUser(ctx context.Context) []web.UserResponse
+
+	Login(ctx context.Context, request web.LoginUserRequest) web.LoginUserResponse
+	UpdateUserOwn(ctx context.Context, request web.UpdateUserRequest) web.UserResponse
 }
 
 type UserServiceImpl struct {
@@ -152,4 +156,57 @@ func (s *UserServiceImpl) FindAllUser(ctx context.Context) []web.UserResponse {
 	}
 
 	return userResponses
+}
+
+func (s *UserServiceImpl) Login(ctx context.Context, request web.LoginUserRequest) web.LoginUserResponse {
+	err := s.Validate.Struct(request)
+	helper.PanicIfError(err)
+
+	tx, err := s.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	user, err := s.UserRepository.AuthUser(ctx, tx, request.Email, request.Password)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+
+	token, err := token.GenerateJwtToken(user.Id)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+	loginResponse := web.LoginUserResponse{
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
+	}
+
+	return loginResponse
+}
+
+func (s *UserServiceImpl) UpdateUserOwn(ctx context.Context, request web.UpdateUserRequest) web.UserResponse {
+	err := s.Validate.Struct(request)
+	helper.PanicIfError(err)
+
+	tx, err := s.DB.Begin()
+	helper.PanicIfError(err)
+	defer helper.CommitOrRollback(tx)
+
+	user, err := s.UserRepository.FindById(ctx, tx, request.Id)
+	if err != nil {
+		panic(exception.NewNotFoundError(err.Error()))
+	}
+
+	user.Email = request.Email
+	user.Password = request.Password
+	user.Name = request.Name
+
+	user = s.UserRepository.Update(ctx, tx, user)
+
+	userResponse := web.UserResponse{
+		Email: user.Email,
+		Name:  user.Name,
+	}
+
+	return userResponse
 }
