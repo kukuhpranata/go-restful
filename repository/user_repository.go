@@ -48,14 +48,13 @@ func (r UserRepositoryImpl) Delete(ctx context.Context, tx *sql.Tx, userId int) 
 	query := "DELETE from users WHERE id = ?"
 	_, err := tx.ExecContext(ctx, query, userId)
 	helper.PanicIfError(err)
-
-	helper.PanicIfError(err)
 }
 
 func (r UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, userId int) (domain.User, error) {
 	query := "SELECT * FROM users WHERE id = ?"
 	rows, err := tx.QueryContext(ctx, query, userId)
 	helper.PanicIfError(err)
+	defer rows.Close()
 
 	user := domain.User{}
 	if rows.Next() {
@@ -71,6 +70,7 @@ func (r UserRepositoryImpl) FindByEmail(ctx context.Context, tx *sql.Tx, email s
 	query := "SELECT * FROM users WHERE email = ?"
 	rows, err := tx.QueryContext(ctx, query, email)
 	helper.PanicIfError(err)
+	defer rows.Close()
 
 	user := domain.User{}
 	if rows.Next() {
@@ -86,9 +86,10 @@ func (r UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) []domain.Us
 	query := "SELECT * FROM users"
 	rows, err := tx.QueryContext(ctx, query)
 	helper.PanicIfError(err)
+	defer rows.Close()
 
 	var users []domain.User
-	if rows.Next() {
+	for rows.Next() {
 		user := domain.User{}
 		err := rows.Scan(&user.Id, &user.Email, &user.Password, &user.Name)
 		helper.PanicIfError(err)
