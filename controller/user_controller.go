@@ -17,6 +17,9 @@ type UserController interface {
 	FindUserById(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindUserByEmail(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 	FindAllUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+
+	Login(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
+	UpdateUserOwn(writer http.ResponseWriter, request *http.Request, params httprouter.Params)
 }
 
 type UserControllerImpl struct {
@@ -111,6 +114,37 @@ func (c *UserControllerImpl) FindAllUser(writer http.ResponseWriter, request *ht
 		Code:   200,
 		Status: "OK",
 		Data:   userResponses,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+}
+
+func (c *UserControllerImpl) Login(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	loginRequest := web.LoginUserRequest{}
+	helper.ReadFromRequestBody(request, &loginRequest)
+
+	loginResponse := c.UserService.Login(request.Context(), loginRequest)
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   loginResponse,
+	}
+
+	helper.WriteToResponseBody(writer, webResponse)
+
+}
+func (c *UserControllerImpl) UpdateUserOwn(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+	userId := request.Context().Value("authId").(int)
+
+	userUpdateRequest := web.UpdateUserRequest{}
+	helper.ReadFromRequestBody(request, &userUpdateRequest)
+	userUpdateRequest.Id = userId
+
+	userResponse := c.UserService.UpdateUserOwn(request.Context(), userUpdateRequest)
+	webResponse := web.WebResponse{
+		Code:   200,
+		Status: "OK",
+		Data:   userResponse,
 	}
 
 	helper.WriteToResponseBody(writer, webResponse)
