@@ -14,6 +14,7 @@ type UserRepository interface {
 	Delete(ctx context.Context, tx *sql.Tx, userId int)
 	FindById(ctx context.Context, tx *sql.Tx, userId int) (domain.User, error)
 	FindByEmail(ctx context.Context, tx *sql.Tx, email string) (domain.User, error)
+	AuthUser(ctx context.Context, tx *sql.Tx, email string, password string) (domain.User, error)
 	FindAll(ctx context.Context, tx *sql.Tx) []domain.User
 }
 
@@ -69,6 +70,22 @@ func (r UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, userId int
 func (r UserRepositoryImpl) FindByEmail(ctx context.Context, tx *sql.Tx, email string) (domain.User, error) {
 	query := "SELECT * FROM users WHERE email = ?"
 	rows, err := tx.QueryContext(ctx, query, email)
+	helper.PanicIfError(err)
+	defer rows.Close()
+
+	user := domain.User{}
+	if rows.Next() {
+		err := rows.Scan(&user.Id, &user.Email, &user.Password, &user.Name)
+		helper.PanicIfError(err)
+		return user, nil
+	} else {
+		return user, errors.New("user not found")
+	}
+}
+
+func (r UserRepositoryImpl) AuthUser(ctx context.Context, tx *sql.Tx, email string, password string) (domain.User, error) {
+	query := "SELECT * FROM users WHERE email = ? AND password = ?"
+	rows, err := tx.QueryContext(ctx, query, email, password)
 	helper.PanicIfError(err)
 	defer rows.Close()
 
