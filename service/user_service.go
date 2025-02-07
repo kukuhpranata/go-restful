@@ -47,9 +47,12 @@ func (s *UserServiceImpl) CreateNewUser(ctx context.Context, request web.CreateU
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
+	password, err := helper.HashPassword(request.Password)
+	helper.PanicIfError(err)
+
 	user := domain.User{
 		Email:    request.Email,
-		Password: request.Password,
+		Password: password,
 		Name:     request.Name,
 	}
 
@@ -71,13 +74,15 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, request web.UpdateUser
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
+	password, err := helper.HashPassword(request.Password)
+
 	user, err := s.UserRepository.FindById(ctx, tx, request.Id)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
 	user.Email = request.Email
-	user.Password = request.Password
+	user.Password = password
 	user.Name = request.Name
 
 	user = s.UserRepository.Update(ctx, tx, user)
@@ -166,10 +171,13 @@ func (s *UserServiceImpl) Login(ctx context.Context, request web.LoginUserReques
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	user, err := s.UserRepository.AuthUser(ctx, tx, request.Email, request.Password)
+	user, err := s.UserRepository.FindByEmail(ctx, tx, request.Email)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
+
+	err = helper.CheckPasswordHash(request.Password, user.Password)
+	helper.PanicIfError(err)
 
 	token, err := token.GenerateJwtToken(user.Id)
 	if err != nil {
@@ -197,8 +205,11 @@ func (s *UserServiceImpl) UpdateUserOwn(ctx context.Context, request web.UpdateU
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
+	password, err := helper.HashPassword(request.Password)
+	helper.PanicIfError(err)
+
 	user.Email = request.Email
-	user.Password = request.Password
+	user.Password = password
 	user.Name = request.Name
 
 	user = s.UserRepository.Update(ctx, tx, user)
