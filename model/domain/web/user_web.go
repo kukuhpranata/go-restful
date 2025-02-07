@@ -7,12 +7,13 @@ type CreateUserRequest struct {
 }
 
 type UserResponse struct {
+	Id    string `json:"id"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
 
 type UpdateUserRequest struct {
-	Id       int    `validate:"required" json:"id"`
+	Id       string `validate:"required" json:"id"`
 	Email    string `validate:"required" json:"email"`
 	Password string `validate:"required" json:"password"`
 	Name     string `validate:"required" json:"name"`

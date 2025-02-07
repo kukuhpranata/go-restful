@@ -15,7 +15,7 @@ const (
 	TOKEN_Expiry_B2B = 24 * time.Hour * 365
 )
 
-func GenerateJwtToken(authId int) (string, error) {
+func GenerateJwtToken(authId string) (string, error) {
 	payload := Token{
 		AuthId:         authId,
 		ExpirationTime: time.Now().Add(TOKEN_Expiry),

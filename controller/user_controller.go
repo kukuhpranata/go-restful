@@ -5,7 +5,6 @@ import (
 	"kukuh/go-restful/model/domain/web"
 	"kukuh/go-restful/service"
 	"net/http"
-	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -50,11 +49,9 @@ func (c *UserControllerImpl) UpdateUser(writer http.ResponseWriter, request *htt
 	userUpdateRequest := web.UpdateUserRequest{}
 	helper.ReadFromRequestBody(request, &userUpdateRequest)
 
-	categoryId := params.ByName("userId")
-	id, err := strconv.Atoi(categoryId)
-	helper.PanicIfError(err)
+	userId := params.ByName("userId")
 
-	userUpdateRequest.Id = id
+	userUpdateRequest.Id = userId
 
 	userResponse := c.UserService.UpdateUser(request.Context(), userUpdateRequest)
 	webResponse := web.WebResponse{
@@ -68,10 +65,8 @@ func (c *UserControllerImpl) UpdateUser(writer http.ResponseWriter, request *htt
 
 func (c *UserControllerImpl) DeleteUser(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	userId := params.ByName("userId")
-	id, err := strconv.Atoi(userId)
-	helper.PanicIfError(err)
 
-	c.UserService.DeleteUser(request.Context(), id)
+	c.UserService.DeleteUser(request.Context(), userId)
 	webResponse := web.WebResponse{
 		Code:   200,
 		Status: "OK",
@@ -82,10 +77,8 @@ func (c *UserControllerImpl) DeleteUser(writer http.ResponseWriter, request *htt
 
 func (c *UserControllerImpl) FindUserById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
 	userId := params.ByName("userId")
-	id, err := strconv.Atoi(userId)
-	helper.PanicIfError(err)
 
-	userResponse := c.UserService.FindUserById(request.Context(), id)
+	userResponse := c.UserService.FindUserById(request.Context(), userId)
 	webResponse := web.WebResponse{
 		Code:   200,
 		Status: "OK",
@@ -134,7 +127,7 @@ func (c *UserControllerImpl) Login(writer http.ResponseWriter, request *http.Req
 
 }
 func (c *UserControllerImpl) UpdateUserOwn(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	userId := request.Context().Value("authId").(int)
+	userId := request.Context().Value("authId").(string)
 
 	userUpdateRequest := web.UpdateUserRequest{}
 	helper.ReadFromRequestBody(request, &userUpdateRequest)

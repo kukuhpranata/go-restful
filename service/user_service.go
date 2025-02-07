@@ -16,8 +16,8 @@ import (
 type UserService interface {
 	CreateNewUser(ctx context.Context, request web.CreateUserRequest) web.UserResponse
 	UpdateUser(ctx context.Context, request web.UpdateUserRequest) web.UserResponse
-	DeleteUser(ctx context.Context, userId int)
-	FindUserById(ctx context.Context, userId int) web.UserResponse
+	DeleteUser(ctx context.Context, userId string)
+	FindUserById(ctx context.Context, userId string) web.UserResponse
 	FindUserByEmail(ctx context.Context, email string) web.UserResponse
 	FindAllUser(ctx context.Context) []web.UserResponse
 
@@ -76,7 +76,8 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, request web.UpdateUser
 
 	password, err := helper.HashPassword(request.Password)
 
-	user, err := s.UserRepository.FindById(ctx, tx, request.Id)
+	decryptedUserId, err := helper.Decrypt(request.Id)
+	user, err := s.UserRepository.FindById(ctx, tx, decryptedUserId)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
@@ -95,30 +96,37 @@ func (s *UserServiceImpl) UpdateUser(ctx context.Context, request web.UpdateUser
 	return userResponse
 }
 
-func (s *UserServiceImpl) DeleteUser(ctx context.Context, userId int) {
+func (s *UserServiceImpl) DeleteUser(ctx context.Context, userId string) {
+	decryptedUserId, err := helper.Decrypt(userId)
+
 	tx, err := s.DB.Begin()
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	_, err = s.UserRepository.FindById(ctx, tx, userId)
+	_, err = s.UserRepository.FindById(ctx, tx, decryptedUserId)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
-	s.UserRepository.Delete(ctx, tx, userId)
+	s.UserRepository.Delete(ctx, tx, decryptedUserId)
 }
 
-func (s *UserServiceImpl) FindUserById(ctx context.Context, userId int) web.UserResponse {
+func (s *UserServiceImpl) FindUserById(ctx context.Context, userId string) web.UserResponse {
+	decryptedUserId, err := helper.Decrypt(userId)
+	helper.PanicIfError(err)
+
 	tx, err := s.DB.Begin()
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	user, err := s.UserRepository.FindById(ctx, tx, userId)
+	user, err := s.UserRepository.FindById(ctx, tx, int(decryptedUserId))
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
+	encryptedUserId, _ := helper.Encrypt(uint64(user.Id))
 	userResponse := web.UserResponse{
+		Id:    encryptedUserId,
 		Email: user.Email,
 		Name:  user.Name,
 	}
@@ -136,7 +144,10 @@ func (s *UserServiceImpl) FindUserByEmail(ctx context.Context, email string) web
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
+	encryptedUserId, _ := helper.Encrypt(uint64(user.Id))
+
 	userResponse := web.UserResponse{
+		Id:    encryptedUserId,
 		Email: user.Email,
 		Name:  user.Name,
 	}
@@ -153,7 +164,9 @@ func (s *UserServiceImpl) FindAllUser(ctx context.Context) []web.UserResponse {
 
 	var userResponses []web.UserResponse
 	for _, user := range users {
+		encryptedUserId, _ := helper.Encrypt(uint64(user.Id))
 		userResponse := web.UserResponse{
+			Id:    encryptedUserId,
 			Email: user.Email,
 			Name:  user.Name,
 		}
@@ -179,7 +192,9 @@ func (s *UserServiceImpl) Login(ctx context.Context, request web.LoginUserReques
 	err = helper.CheckPasswordHash(request.Password, user.Password)
 	helper.PanicIfError(err)
 
-	token, err := token.GenerateJwtToken(user.Id)
+	encryptedUserId, err := helper.Encrypt(uint64(user.Id))
+
+	token, err := token.GenerateJwtToken(encryptedUserId)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
@@ -200,7 +215,9 @@ func (s *UserServiceImpl) UpdateUserOwn(ctx context.Context, request web.UpdateU
 	helper.PanicIfError(err)
 	defer helper.CommitOrRollback(tx)
 
-	user, err := s.UserRepository.FindById(ctx, tx, request.Id)
+	decryptedUserId, err := helper.Decrypt(request.Id)
+	helper.PanicIfError(err)
+	user, err := s.UserRepository.FindById(ctx, tx, decryptedUserId)
 	if err != nil {
 		panic(exception.NewNotFoundError(err.Error()))
 	}
