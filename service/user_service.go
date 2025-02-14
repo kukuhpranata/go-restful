@@ -189,7 +189,7 @@ func (s *UserServiceImpl) Login(ctx context.Context, request web.LoginUserReques
 		panic(exception.NewNotFoundError(err.Error()))
 	}
 
-	err = helper.CheckPasswordHash(request.Password, user.Password)
+	err = helper.CheckPasswordHash(user.Password, request.Password)
 	helper.PanicIfError(err)
 
 	encryptedUserId, err := helper.Encrypt(uint64(user.Id))
