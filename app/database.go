@@ -2,18 +2,36 @@ package app
 
 import (
 	"database/sql"
-	"kukuh/go-restful/helper"
-	"time"
+	"fmt"
+	"os"
+
+	"github.com/joho/godotenv"
 )
 
 func NewDB() *sql.DB {
-	db, err := sql.Open("mysql", "root:113322@tcp(localhost:3306)/go_restful")
-	helper.PanicIfError(err)
+	err := godotenv.Load()
 
-	db.SetMaxIdleConns(5)
-	db.SetMaxOpenConns(20)
-	db.SetConnMaxLifetime(60 * time.Minute)
-	db.SetConnMaxIdleTime(10 * time.Minute)
+	var (
+		DB_User         = os.Getenv("DB_USERNAME")
+		DB_Pass         = os.Getenv("DB_PASSWORD")
+		DB_Host         = os.Getenv("DB_HOST")
+		DB_Port         = os.Getenv("DB_PORT")
+		DB_DatabaseName = os.Getenv("DB_DATABASE")
+	)
 
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:%s)/%s?parseTime=true&loc=Local",
+		DB_User, DB_Pass, DB_Host, DB_Port, DB_DatabaseName,
+	)
+
+	db, err := sql.Open("mysql", dsn)
+	if err != nil {
+		return nil
+	}
+
+	err = db.Ping()
+	if err != nil {
+		return nil
+	}
 	return db
 }

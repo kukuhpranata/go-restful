@@ -4,21 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const (
-	TOKEN_Key        = "2a552226099f6c66dc73fbe8a75d5c69fc584c0616212ecb7ff806f780b3da0c"
-	TOKEN_Expiry     = 24 * time.Hour
-	TOKEN_Expiry_B2B = 24 * time.Hour * 365
+var (
+	TOKEN_Key        = os.Getenv("JWT_SECRET")
+	TOKEN_Expiration = 24 * time.Hour
 )
 
 func GenerateJwtToken(authId string) (string, error) {
 	payload := Token{
 		AuthId:         authId,
-		ExpirationTime: time.Now().Add(TOKEN_Expiry),
+		ExpirationTime: time.Now().Add(TOKEN_Expiration),
 	}
 	claims := jwt.MapClaims{
 		"payload": payload,
