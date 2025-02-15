@@ -29,11 +29,6 @@ JWT in `Authorization` header (`Bearer <token>`).
 
 Business logic in service layer.
 
-## Database
-
-MySQL, schema in migrations (if applicable).
-
-
 ## Deployment
 
 Standard Go deployment.
